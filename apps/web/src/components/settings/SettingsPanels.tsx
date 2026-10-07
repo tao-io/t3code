@@ -610,6 +610,9 @@ export function useSettingsRestore(onRestored?: () => void) {
       ...(settings.composerCollapseOnScroll !== DEFAULT_UNIFIED_SETTINGS.composerCollapseOnScroll
         ? ["Collapse composer on scroll"]
         : []),
+      ...(settings.keepScrollOnSend !== DEFAULT_UNIFIED_SETTINGS.keepScrollOnSend
+        ? ["Keep scroll position when sending"]
+        : []),
       ...(settings.composerRichTextEnabled !== DEFAULT_UNIFIED_SETTINGS.composerRichTextEnabled
         ? ["Rich text composer"]
         : []),
@@ -678,6 +681,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       settings.confirmThreadDelete,
       settings.confirmThreadUnpin,
       settings.composerCollapseOnScroll,
+      settings.keepScrollOnSend,
       settings.composerRichTextEnabled,
       settings.sendShortcut,
       settings.followUpBehavior,
@@ -800,6 +804,7 @@ export function useSettingsRestore(onRestored?: () => void) {
       proactivePanelsEnabled: DEFAULT_UNIFIED_SETTINGS.proactivePanelsEnabled,
       showSkillsInSlashMenu: DEFAULT_UNIFIED_SETTINGS.showSkillsInSlashMenu,
       composerCollapseOnScroll: DEFAULT_UNIFIED_SETTINGS.composerCollapseOnScroll,
+      keepScrollOnSend: DEFAULT_UNIFIED_SETTINGS.keepScrollOnSend,
       composerRichTextEnabled: DEFAULT_UNIFIED_SETTINGS.composerRichTextEnabled,
       sendShortcut: DEFAULT_UNIFIED_SETTINGS.sendShortcut,
       followUpBehavior: DEFAULT_UNIFIED_SETTINGS.followUpBehavior,
@@ -2785,6 +2790,28 @@ export function GeneralSettingsPanel() {
                 updateSettings({ composerCollapseOnScroll: Boolean(checked) })
               }
               aria-label="Collapse composer on scroll"
+            />
+          }
+        />
+
+        <SettingsRow
+          {...searchableSetting("keep-scroll-on-send")}
+          description="When you send while scrolled up, stay where you are reading. Sends from the end of the conversation still show the new turn."
+          resetAction={
+            settings.keepScrollOnSend !== DEFAULT_UNIFIED_SETTINGS.keepScrollOnSend ? (
+              <SettingResetButton
+                label="keep scroll position when sending"
+                onClick={() =>
+                  updateSettings({ keepScrollOnSend: DEFAULT_UNIFIED_SETTINGS.keepScrollOnSend })
+                }
+              />
+            ) : null
+          }
+          control={
+            <Switch
+              checked={settings.keepScrollOnSend}
+              onCheckedChange={(checked) => updateSettings({ keepScrollOnSend: Boolean(checked) })}
+              aria-label="Keep scroll position when sending"
             />
           }
         />

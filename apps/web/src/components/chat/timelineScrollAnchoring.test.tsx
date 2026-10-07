@@ -6,6 +6,7 @@ import {
   getRowBottom,
   readTimelinePosition,
   rememberTimelinePosition,
+  shouldKeepReadingPositionOnSend,
   timelineContentOverflowsViewport,
 } from "./timelineScrollAnchoring";
 
@@ -280,5 +281,43 @@ describe("remembered timeline positions", () => {
     expect(readTimelinePosition("scroll-test-a:unvisited")).toBeUndefined();
     rememberTimelinePosition("scroll-test-a:thread-1", following);
     expect(readTimelinePosition("scroll-test-a:thread-1")).toEqual(following);
+  });
+});
+
+describe("shouldKeepReadingPositionOnSend", () => {
+  it("keeps the place of a reader who scrolled up", () => {
+    expect(
+      shouldKeepReadingPositionOnSend({
+        enabled: true,
+        scrollMode: "free-scrolling",
+        atEnd: false,
+      }),
+    ).toBe(true);
+  });
+
+  it("anchors the new turn when the reader is at the end or the timeline still follows", () => {
+    expect(
+      shouldKeepReadingPositionOnSend({ enabled: true, scrollMode: "free-scrolling", atEnd: true }),
+    ).toBe(false);
+    expect(
+      shouldKeepReadingPositionOnSend({ enabled: true, scrollMode: "following-end", atEnd: false }),
+    ).toBe(false);
+    expect(
+      shouldKeepReadingPositionOnSend({
+        enabled: true,
+        scrollMode: "anchoring-new-turn",
+        atEnd: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("always anchors when the setting is off", () => {
+    expect(
+      shouldKeepReadingPositionOnSend({
+        enabled: false,
+        scrollMode: "free-scrolling",
+        atEnd: false,
+      }),
+    ).toBe(false);
   });
 });

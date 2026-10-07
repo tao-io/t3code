@@ -40,6 +40,19 @@ export const CHAT_TIMELINE_ANCHOR_OFFSET = 24;
 
 export type TimelineScrollMode = "following-end" | "anchoring-new-turn" | "free-scrolling";
 
+/**
+ * Whether a send keeps the reader's place. Only a reader who scrolled away
+ * from the live end on their own keeps it; a send from the end, or during a
+ * turn the timeline still frames, anchors the new turn as before.
+ */
+export function shouldKeepReadingPositionOnSend(input: {
+  readonly enabled: boolean;
+  readonly scrollMode: TimelineScrollMode;
+  readonly atEnd: boolean;
+}): boolean {
+  return input.enabled && input.scrollMode === "free-scrolling" && !input.atEnd;
+}
+
 export interface TimelineListMeasurementState {
   readonly data: readonly unknown[];
   readonly scroll: number;

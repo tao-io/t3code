@@ -407,6 +407,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["composer rest resting scroll wheel conversation timeline shrink minimize"],
   },
   {
+    id: "keep-scroll-on-send",
+    title: "Keep scroll position when sending",
+    to: "/settings/general",
+    searchTerms: ["send jump bottom end reading position scrolled up history anchor"],
+  },
+  {
     id: "send-shortcut",
     title: "Send shortcut",
     to: "/settings/general",

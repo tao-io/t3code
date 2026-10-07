@@ -106,6 +106,15 @@ describe("ClientSettings rich text composer", () => {
   });
 });
 
+describe("ClientSettings keep scroll on send", () => {
+  it("keeps the reading position by default and accepts an opt-out", () => {
+    expect(decodeClientSettings({}).keepScrollOnSend).toBe(true);
+    const preference = { keepScrollOnSend: false };
+    expect(decodeClientSettingsPatch(preference)).toEqual(preference);
+    expect(encodeClientSettings(decodeClientSettings(preference))).toMatchObject(preference);
+  });
+});
+
 describe("ServerSettings default permissions", () => {
   it("keeps full access for settings saved before a default was configured", () => {
     expect(decodeServerSettings({}).defaultRuntimeMode).toBe("full-access");

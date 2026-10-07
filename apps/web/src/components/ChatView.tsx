@@ -205,6 +205,7 @@ import {
   timelineContentOverflowsViewport,
   readTimelinePosition,
   observeTimelineRun,
+  shouldKeepReadingPositionOnSend,
   type TimelineRunObservation,
   type TimelineScrollMode,
 } from "./chat/timelineScrollAnchoring";
@@ -332,6 +333,7 @@ import {
   sortProviderInstanceEntries,
 } from "../providerInstances";
 import {
+  getClientSettings,
   useClientSettings,
   useClientSettingsHydrated,
   useEnvironmentSettings,
@@ -6498,6 +6500,16 @@ export default function ChatView(props: ChatViewProps) {
       void legendListRef.current?.scrollToEnd?.({ animated });
     });
   }, []);
+  // A send skips the jump to the new turn while the user reads history.
+  const keepReadingPositionOnSend = useCallback(
+    () =>
+      shouldKeepReadingPositionOnSend({
+        enabled: getClientSettings().keepScrollOnSend,
+        scrollMode: timelineScrollModeRef.current,
+        atEnd: isTimelineAtLogicalEnd(),
+      }),
+    [isTimelineAtLogicalEnd],
+  );
   useEffect(() => {
     let removeListeners: (() => void) | null = null;
     let frame: number | null = null;
@@ -7429,7 +7441,7 @@ export default function ChatView(props: ChatViewProps) {
           streaming: false,
         },
       ]);
-      scrollToEnd();
+      if (!keepReadingPositionOnSend()) scrollToEnd();
       try {
         const settingsResult = await persistThreadSettingsForNextTurn({
           threadId,
@@ -7476,6 +7488,7 @@ export default function ChatView(props: ChatViewProps) {
       clientSettingsHydrated,
       composerRef,
       environmentId,
+      keepReadingPositionOnSend,
       localCheckoutBranchMismatch,
       persistThreadSettingsForNextTurn,
       resetLocalDispatch,
@@ -9661,10 +9674,11 @@ export default function ChatView(props: ChatViewProps) {
             ...(attachment.source ? { source: attachment.source } : {}),
           },
     );
-    if (!shouldQueueBehindActiveRun) {
+    if (!shouldQueueBehindActiveRun && !keepReadingPositionOnSend()) {
       // A sent turn returns to the live edge and anchors its new transcript
       // row. Queued input stays in the composer queue and must not move the
-      // timeline away from the provider work already in flight.
+      // timeline away from the provider work already in flight. A reader who
+      // scrolled up keeps their place (Keep scroll position when sending).
       isAtEndRef.current = true;
       timelineScrollModeRef.current = "anchoring-new-turn";
       liveFollowUserScrollGenerationRef.current = anchorUserScrollGenerationRef.current;
@@ -10340,18 +10354,20 @@ export default function ChatView(props: ChatViewProps) {
     setThreadError(threadIdForSend, null);
 
     // Position this sent row once LegendList has measured the anchored tail.
-    isAtEndRef.current = true;
-    timelineScrollModeRef.current = "anchoring-new-turn";
-    liveFollowUserScrollGenerationRef.current = anchorUserScrollGenerationRef.current;
-    setTimelineLiveFollowEnabled(true);
-    pendingTimelineAnchorRef.current = messageIdForSend;
-    activeTimelineAnchorIndexRef.current = null;
-    showScrollDebouncer.current.cancel();
-    setShowScrollToBottom(false);
-    setTimelineAnchor({
-      threadKey: scopedThreadKey(scopeThreadRef(activeThread.environmentId, threadIdForSend)),
-      messageId: messageIdForSend,
-    });
+    if (!keepReadingPositionOnSend()) {
+      isAtEndRef.current = true;
+      timelineScrollModeRef.current = "anchoring-new-turn";
+      liveFollowUserScrollGenerationRef.current = anchorUserScrollGenerationRef.current;
+      setTimelineLiveFollowEnabled(true);
+      pendingTimelineAnchorRef.current = messageIdForSend;
+      activeTimelineAnchorIndexRef.current = null;
+      showScrollDebouncer.current.cancel();
+      setShowScrollToBottom(false);
+      setTimelineAnchor({
+        threadKey: scopedThreadKey(scopeThreadRef(activeThread.environmentId, threadIdForSend)),
+        messageId: messageIdForSend,
+      });
+    }
 
     setOptimisticUserMessages((existing) => [
       ...existing,
