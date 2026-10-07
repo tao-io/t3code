@@ -209,6 +209,7 @@ import {
   type TimelineRunObservation,
   type TimelineScrollMode,
 } from "./chat/timelineScrollAnchoring";
+import { readFinalAnswerReadingRequest } from "./chat/finalAnswerReading";
 import {
   buildPendingUserInputAnswers,
   carryDisplacedCustomAnswerIntoPrompt,
@@ -6816,7 +6817,10 @@ export default function ChatView(props: ChatViewProps) {
 
   useEffect(() => {
     setPullRequestDialogState(null);
-    const followEnd = readTimelinePosition(routeThreadKey)?.atEnd !== false;
+    // A notification click opens the thread at its final answer, away from the end.
+    const followEnd =
+      readFinalAnswerReadingRequest(routeThreadKey) === null &&
+      readTimelinePosition(routeThreadKey)?.atEnd !== false;
     isAtEndRef.current = followEnd;
     timelineScrollIntentRef.current = null;
     timelineScrollModeRef.current = followEnd ? "following-end" : "free-scrolling";

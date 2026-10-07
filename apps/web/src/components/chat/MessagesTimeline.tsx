@@ -145,6 +145,7 @@ import {
   XIcon,
   ZapIcon,
   RotateCcwIcon,
+  ArrowRightIcon,
 } from "lucide-react";
 import { ChevronDown, ChevronRight } from "lucide";
 import type {
@@ -178,7 +179,17 @@ import {
   readTimelinePosition,
   rememberTimelinePosition,
   timelineContentOverflowsViewport,
+  type RememberedTimelinePosition,
 } from "./timelineScrollAnchoring";
+import {
+  clearFinalAnswerMarker,
+  findFinalAnswerRow,
+  finishFinalAnswerReading,
+  markFinalAnswer,
+  resolveFinalAnswerMarker,
+  useFinalAnswerMarker,
+  useFinalAnswerReadingRequest,
+} from "./finalAnswerReading";
 import { MessageCopyButton } from "./MessageCopyButton";
 import { PierreEntryIcon } from "./PierreEntryIcon";
 import { inferEntryKindFromPath } from "../../pierre-icons";
@@ -347,6 +358,8 @@ interface TimelineRowSharedState {
   onWorktreeSetupWorkLocally: (() => void) | null;
   onOpenWorktreeSetupTerminal: ((terminalId: string) => void) | null;
   workGroupViewState: WorkGroupViewState;
+  /** The final answer a notification opened, marked until the next send. */
+  finalAnswerMarkerRowId: string | null;
 }
 
 interface TimelineRowActivityState {
@@ -412,6 +425,13 @@ const TIMELINE_MAINTAIN_SCROLL_AT_END = {
 } as const satisfies MaintainScrollAtEndOptions;
 const EMPTY_TIMELINE_RUNS: ReadonlyArray<HandoffTimelineRun> = [];
 const EMPTY_RUN_IDS: ReadonlySet<RunId> = new Set();
+// Holds the list off the live end while a final answer request waits for rows.
+const PENDING_READING_POSITION: RememberedTimelinePosition = {
+  rowId: "",
+  offsetWithinRow: 0,
+  scrollOffset: 0,
+  atEnd: false,
+};
 // Streamed text lands a paragraph at a time. A smooth scroll to the end
 // turns each landing into a short glide instead of a jump. Thread switches
 // and layout settles keep the instant variant so nothing visibly travels.
@@ -602,8 +622,11 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   const [expandedAttemptIds, setExpandedAttemptIds] = useState<ReadonlySet<RunAttemptId>>(
     () => rememberedPosition?.disclosures?.attempts ?? new Set(),
   );
+  // A notification click asks to open this thread at its final answer.
+  const readingRequest = useFinalAnswerReadingRequest(listIdentityKey);
+  const [startedReadingRequest, setStartedReadingRequest] = useState(readingRequest);
   const [positionedThreadKey, setPositionedThreadKey] = useState<string | null>(() =>
-    rememberedPosition?.atEnd === false ? null : listIdentityKey,
+    rememberedPosition?.atEnd === false || readingRequest !== null ? null : listIdentityKey,
   );
   const restoringThreadPosition = positionedThreadKey !== listIdentityKey;
   const prefersReducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
@@ -618,6 +641,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   if (listIdentityRef.current !== listIdentityKey) {
     listIdentityRef.current = listIdentityKey;
     setPositionedThreadKey(null);
+    setStartedReadingRequest(readingRequest);
     previousLatestRunRef.current = latestRun;
     setSettlingListIdentity(listIdentityKey);
     paintedExpandedRunIds = rememberedPosition?.disclosures?.runs ?? new Set();
@@ -626,6 +650,11 @@ export const MessagesTimeline = memo(function MessagesTimeline({
     setExpandedRunIds(paintedExpandedRunIds);
     setExpandedWorkGroupIds(paintedExpandedWorkGroupIds);
     setExpandedAttemptIds(paintedExpandedAttemptIds);
+  }
+  // A new request for the thread on screen positions the list again.
+  if (readingRequest !== null && readingRequest !== startedReadingRequest) {
+    setStartedReadingRequest(readingRequest);
+    setPositionedThreadKey(null);
   }
   const citationThreadRef = useMemo(() => parseScopedThreadKey(routeThreadKey), [routeThreadKey]);
   const openPullRequest = useOpenPrLink(citationThreadRef ?? undefined);
@@ -829,9 +858,40 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   // must not change with them or every timeline row re-renders per event.
   const runs = useStableHandoffRuns(runsProp);
   const minimapItems = useMemo(() => deriveTimelineMinimapItems(rows), [rows]);
+  const readingAnswerRowId =
+    readingRequest === null ? null : (findFinalAnswerRow(rows)?.id ?? null);
+  const hasRows = rows.length > 0;
+  // The final answer request restores like a remembered reading position, so
+  // the list opens there without first painting the live end.
+  const restorePosition = useMemo<RememberedTimelinePosition | undefined>(() => {
+    if (readingRequest === null) return rememberedPosition;
+    if (!hasRows) return PENDING_READING_POSITION;
+    if (readingAnswerRowId === null) return rememberedPosition;
+    return {
+      rowId: readingAnswerRowId,
+      offsetWithinRow: -CHAT_TIMELINE_ANCHOR_OFFSET,
+      scrollOffset: 0,
+      atEnd: false,
+      ...(rememberedPosition?.disclosures ? { disclosures: rememberedPosition.disclosures } : {}),
+    };
+  }, [hasRows, readingAnswerRowId, readingRequest, rememberedPosition]);
+  useEffect(() => {
+    if (readingRequest === null || restoringThreadPosition || !hasRows) return;
+    const answer = findFinalAnswerRow(rows);
+    if (answer) markFinalAnswer(listIdentityKey, answer.message.id);
+    finishFinalAnswerReading(readingRequest);
+  }, [hasRows, listIdentityKey, readingRequest, restoringThreadPosition, rows]);
+  const markedFinalAnswerId = useFinalAnswerMarker(listIdentityKey);
+  const finalAnswerMarker = useMemo(
+    () => resolveFinalAnswerMarker(rows, markedFinalAnswerId),
+    [markedFinalAnswerId, rows],
+  );
+  useEffect(() => {
+    if (finalAnswerMarker.stale) clearFinalAnswerMarker(listIdentityKey);
+  }, [finalAnswerMarker.stale, listIdentityKey]);
   const restoreRowIndex =
-    restoringThreadPosition && rememberedPosition?.atEnd === false
-      ? rows.findIndex((row) => row.id === rememberedPosition.rowId)
+    restoringThreadPosition && restorePosition?.atEnd === false
+      ? rows.findIndex((row) => row.id === restorePosition.rowId)
       : -1;
   const restoringAlwaysRender = useMemo(
     () =>
@@ -875,7 +935,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
     viewport?.addEventListener("touchmove", cancelForNavigation, { passive: true });
     viewport?.addEventListener("pointerdown", cancelForNavigation, { passive: true });
     viewport?.ownerDocument.addEventListener("keydown", onScrollKey);
-    const position = rememberedPosition;
+    const position = restorePosition;
     const index = position ? rows.findIndex((row) => row.id === position.rowId) : -1;
     if (position?.atEnd === false) onManualNavigation();
     if (cancelPositionRestoreRef) cancelPositionRestoreRef.current = cancelRestoration;
@@ -948,7 +1008,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
     listIdentityKey,
     listRef,
     onManualNavigation,
-    rememberedPosition,
+    restorePosition,
     restoringThreadPosition,
     rows,
   ]);
@@ -1236,6 +1296,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       onWorktreeSetupWorkLocally: onWorktreeSetupWorkLocally ?? null,
       onOpenWorktreeSetupTerminal: onOpenWorktreeSetupTerminal ?? null,
       workGroupViewState,
+      finalAnswerMarkerRowId: finalAnswerMarker.rowId,
     }),
     [
       readyCitationRequest,
@@ -1273,6 +1334,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
       onWorktreeSetupWorkLocally,
       onOpenWorktreeSetupTerminal,
       workGroupViewState,
+      finalAnswerMarker.rowId,
     ],
   );
   const compactionAwaitingRow =
@@ -1351,6 +1413,9 @@ export const MessagesTimeline = memo(function MessagesTimeline({
   const renderItem = useCallback(
     ({ item }: { item: MessagesTimelineRow }) => (
       <div className="messages-timeline-row-frame">
+        {item.kind === "message" && item.message.role === "assistant" ? (
+          <FinalAnswerMarker rowId={item.id} />
+        ) : null}
         <div className="chat-content-lane overflow-x-clip" data-timeline-root="true">
           <TimelineRowContent row={item} />
         </div>
@@ -1404,7 +1469,13 @@ export const MessagesTimeline = memo(function MessagesTimeline({
             getItemType={getItemType}
             renderItem={renderItem}
             estimatedItemSize={90}
-            initialScrollAtEnd={citationRequest === null && rememberedPosition?.atEnd !== false}
+            // A final answer request keeps this off until the thread changes,
+            // so the list never retargets the end under the reader.
+            initialScrollAtEnd={
+              citationRequest === null &&
+              startedReadingRequest === null &&
+              restorePosition?.atEnd !== false
+            }
             // Legend needs a data refresh to mount new pins without a scroll event.
             dataVersion={readyCitationRequest?.key ?? listIdentityKey}
             {...(alwaysRender ? { alwaysRender } : {})}
@@ -1413,7 +1484,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
             contentInsetEndAdjustment={anchoredEndSpace ? contentInsetEndAdjustment : 0}
             maintainScrollAtEnd={
               citationPositioning ||
-              (restoringThreadPosition && rememberedPosition?.atEnd === false) ||
+              (restoringThreadPosition && restorePosition?.atEnd === false) ||
               anchoredEndSpace ||
               !liveFollowEnabled ||
               fullscreenAppRowId !== null ||
@@ -1424,8 +1495,7 @@ export const MessagesTimeline = memo(function MessagesTimeline({
                   : TIMELINE_MAINTAIN_SCROLL_AT_END
             }
             maintainVisibleContentPosition={
-              citationPositioning ||
-              (restoringThreadPosition && rememberedPosition?.atEnd === false)
+              citationPositioning || (restoringThreadPosition && restorePosition?.atEnd === false)
                 ? false
                 : maintainVisibleContentPosition
             }
@@ -2552,6 +2622,27 @@ function AttemptFoldTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "at
       <span className="text-xs font-medium text-foreground/80">{row.label}</span>
       <span className="text-2xs text-muted-foreground">Partial output retained</span>
     </button>
+  );
+}
+
+/**
+ * A static arrow left of the first line of the final answer a notification
+ * opened. It sits outside the clipped content lane, in the timeline gutter,
+ * and takes no layout space.
+ */
+function FinalAnswerMarker({ rowId }: { rowId: string }) {
+  const ctx = use(TimelineRowCtx);
+  if (ctx.finalAnswerMarkerRowId !== rowId) return null;
+  return (
+    <div className="relative h-0" data-final-answer-marker="true">
+      <ArrowRightIcon
+        aria-hidden
+        className="absolute top-2 size-3 text-primary"
+        style={{
+          left: "calc(max(0px, (100% - var(--chat-content-max-width)) / 2) - 1rem)",
+        }}
+      />
+    </div>
   );
 }
 

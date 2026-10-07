@@ -1,3 +1,4 @@
+import { scopedThreadKey, scopeThreadRef } from "@t3tools/client-runtime/environment";
 import { presentThreadShell } from "@t3tools/client-runtime/state/models";
 import { useAtomValue } from "@effect/atom-react";
 import { useNavigate, useParams } from "@tanstack/react-router";
@@ -21,6 +22,7 @@ import {
   setNotificationBadge,
   unlockNotificationAudio,
 } from "../threadNotifications";
+import { requestFinalAnswerReading } from "./chat/finalAnswerReading";
 import { resolveSidebarThreadStatus } from "./Sidebar.logic";
 import { toastManager } from "./ui/toast";
 
@@ -154,6 +156,16 @@ function EnvironmentNotifications({
             ? "completion"
             : null;
       if (!kind) continue;
+      // A finished turn opens at the start of its final answer, not the end.
+      const openThread = () => {
+        if (kind === "completion") {
+          requestFinalAnswerReading(scopedThreadKey(scopeThreadRef(environmentId, thread.id)));
+        }
+        void navigate({
+          to: "/$environmentId/$threadId",
+          params: { environmentId, threadId: thread.id },
+        });
+      };
       const title =
         kind === "completion"
           ? "Thread completed"
@@ -196,10 +208,7 @@ function EnvironmentNotifications({
             children: "Open thread",
             onClick: () => {
               toastManager.close(toastId);
-              void navigate({
-                to: "/$environmentId/$threadId",
-                params: { environmentId, threadId: thread.id },
-              });
+              openThread();
             },
           },
         });
@@ -222,10 +231,7 @@ function EnvironmentNotifications({
         notification.addEventListener("click", () => {
           notification.close();
           window.focus();
-          void navigate({
-            to: "/$environmentId/$threadId",
-            params: { environmentId, threadId: thread.id },
-          });
+          openThread();
         });
       } catch {
         // Some browsers expose Notification but reject desktop presentation.
