@@ -490,7 +490,7 @@ export function filterCommandPaletteGroups(input: {
     }
   }
 
-  return searchableGroups.flatMap((group) => {
+  const filteredGroups = searchableGroups.flatMap((group) => {
     const items = Arr.filterMap(group.items, (item, index) => {
       const haystack = normalizeSearchText(item.searchTerms.join(" "));
       if (!queryTokens.every((token) => haystack.includes(token))) {
@@ -518,6 +518,26 @@ export function filterCommandPaletteGroups(input: {
 
     return [{ value: group.value, label: group.label, items }];
   });
+
+  if (input.isInSubmenu) {
+    return filteredGroups;
+  }
+  // A strong name match leads: groups sort by their best primary-name match, so
+  // a thread titled exactly like the query comes before weaker action matches.
+  // Ties keep the fixed order (actions, projects, settings, threads).
+  const nameRank = (group: CommandPaletteGroup) =>
+    group.items.reduce(
+      (best, item) =>
+        Math.max(
+          best,
+          rankSearchFieldMatch(item.searchTerms[0] ?? "", normalizedQuery, queryTokens),
+        ),
+      Number.NEGATIVE_INFINITY,
+    );
+  return filteredGroups
+    .map((group) => ({ group, rank: nameRank(group) }))
+    .toSorted((left, right) => (right.rank > left.rank ? 1 : right.rank < left.rank ? -1 : 0))
+    .map((entry) => entry.group);
 }
 
 export function buildBrowseGroups(input: {

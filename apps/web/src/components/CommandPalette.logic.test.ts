@@ -850,6 +850,53 @@ describe("filterCommandPaletteGroups", () => {
       "setting:keybinding-modelPicker.toggle",
     ]);
   });
+
+  describe("group order", () => {
+    const item = (value: string, searchTerms: ReadonlyArray<string>) =>
+      ({
+        kind: "action",
+        value,
+        title: searchTerms[0] ?? value,
+        searchTerms,
+        icon: null,
+        run: async () => undefined,
+      }) satisfies CommandPaletteActionItem;
+    const actions: CommandPaletteGroup = {
+      value: "actions",
+      label: "Actions",
+      items: [
+        item("action:new-thread", ["new thread", "chat", "create", "draft"]),
+        item("action:settings", ["settings", "preferences", "configuration", "keybindings"]),
+      ],
+    };
+    const filter = (query: string) =>
+      filterCommandPaletteGroups({
+        activeGroups: [actions],
+        query,
+        isInSubmenu: false,
+        projectSearchItems: [item("project:drafts", ["Drafts", "/srv/drafts"])],
+        threadSearchItems: [
+          item("thread:onboarding", ["New onboarding flow", "Docs site"]),
+          item("thread:preferences", ["Preferences sync", "Docs site"]),
+        ],
+      }).map((group) => group.value);
+
+    it("puts a strong thread title match before weaker action matches", () => {
+      expect(filter("preferences")).toEqual(["threads-search", "actions"]);
+    });
+
+    it("puts a project name match before actions matched only by keyword", () => {
+      expect(filter("draft")).toEqual(["projects-search", "actions"]);
+    });
+
+    it("keeps the fixed order when name matches tie", () => {
+      expect(filter("new")).toEqual(["actions", "threads-search"]);
+    });
+
+    it("keeps the fixed order for an empty query", () => {
+      expect(filter("")).toEqual(["actions"]);
+    });
+  });
 });
 
 describe("virtualized command palette rows", () => {
