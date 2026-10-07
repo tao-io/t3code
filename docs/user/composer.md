@@ -55,6 +55,17 @@ running the send button shows which action it will take. Long-press it to use th
 other action for a single message, or hold `Cmd` while sending from a hardware
 keyboard. The button only offers Steer when the running agent supports it.
 
+## Reading position
+
+On web and desktop, a message you send while you are scrolled up does not move the
+conversation. Scroll to the end, or use the scroll-to-end button, to see the new turn.
+To jump to each new turn again, turn off **Settings → General → Keep scroll position
+when sending**.
+
+When you open a thread from a "Thread completed" notification, the conversation
+starts at the first line of the agent's final answer. An arrow marks that line until
+you send your next message in the thread.
+
 ## Queue messages offline on mobile
 
 Mobile keeps local copies of draft attachments, so you can preview them and queue
