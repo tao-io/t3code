@@ -622,6 +622,37 @@ function BrowserLinkTargetSetting({ disabled }: { readonly disabled: boolean }) 
   );
 }
 
+function TaskLinkUrlSetting() {
+  const template = useClientSettings((settings) => settings.taskLinkUrlTemplate);
+  const updateSettings = useUpdatePrimarySettings();
+
+  return (
+    <SettingsRow
+      {...searchableSetting("task-link-url")}
+      description="Select a task id and press the Open Task Link shortcut to open this URL. {id} takes the selected text. Leave empty to turn the shortcut off."
+      resetAction={
+        template !== "" ? (
+          <SettingResetButton
+            label="task link URL"
+            onClick={() => updateSettings({ taskLinkUrlTemplate: "" })}
+          />
+        ) : null
+      }
+      control={
+        <DraftInput
+          size="sm"
+          className="w-full sm:w-72"
+          value={template}
+          onCommit={(next) => updateSettings({ taskLinkUrlTemplate: next.trim() })}
+          placeholder="https://tracker.example/task/{id}"
+          spellCheck={false}
+          aria-label="Task link URL"
+        />
+      }
+    />
+  );
+}
+
 function DeviceIntegrationSettings() {
   const { search, environment: selected } = useSettingsScope();
   const settings = useScopedSettings();
@@ -1545,6 +1576,9 @@ export function IntegrationsSettingsPanel() {
         ) : (
           previewDefaults
         )}
+      </SettingsSection>
+      <SettingsSection id="task-links" title="Task links">
+        <TaskLinkUrlSetting />
       </SettingsSection>
       <DeviceIntegrationSettings />
     </SettingsPageContainer>

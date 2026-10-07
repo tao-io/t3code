@@ -138,6 +138,24 @@ through the pages you have visited, like a browser's back and forward buttons.
 [new-thread defaults](./thread-sidebar.md#start-a-thread). `chat.newWithoutProject`
 (`mod+alt+n`) starts a thread [without a project](./thread-sidebar.md#start-without-a-project).
 
+`thread.rename` (`mod+r`) starts the rename of the current thread title, the same as a
+double click on the title. You can also use **Rename thread** in the command palette. The
+shortcut is off in the terminal and the preview, where `mod+r` keeps its own meaning. In the
+desktop app, `mod+r` no longer reloads the window; use `mod+shift+r` (**View → Force Reload**).
+
+`chat.scrollToBottom` (`mod+arrowdown`) goes to the newest message, the same as **Scroll to
+end**. In the composer, the caret also moves to the end of the draft. Other text fields and
+the terminal keep `mod+arrowdown` for themselves.
+
+`selection.openTaskLink` (`mod+g`) opens a task link for the selected text in the chat or
+the focused terminal. Set the URL in **Settings → Integrations → Task links → Task link
+URL**, for example `https://tracker.example/task/{id}`. `{id}` takes the selected text,
+URL-encoded. The selection must be one line of 200 characters or fewer. The desktop app
+opens the link in the in-app browser beside the thread; a browser opens a new tab. With
+no text selected, `mod+g` keeps its usual meaning, such as find next.
+
+These three commands work on web and desktop. The mobile app does not have them.
+
 ## Reserved shortcuts
 
 In the desktop app, `mod+w` closes the focused terminal or the active right-panel

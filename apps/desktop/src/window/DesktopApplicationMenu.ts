@@ -230,7 +230,9 @@ export const make = Effect.gen(function* () {
       {
         label: "View",
         submenu: [
-          { role: "reload" },
+          // No plain `reload` role: on macOS its CmdOrCtrl+R accelerator fires
+          // before the renderer sees the key, which would swallow the
+          // `thread.rename` shortcut. Force Reload keeps CmdOrCtrl+Shift+R.
           { role: "forceReload" },
           { role: "toggleDevTools" },
           { type: "separator" },

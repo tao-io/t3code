@@ -293,6 +293,14 @@ export const LoadBalancingWeights = Schema.Record(
 
 export const DiffColorScheme = Schema.Literals(["red-green", "blue-orange"]);
 
+/**
+ * URL that `selection.openTaskLink` opens for the selected text, such as
+ * `https://tracker.example/task/{id}`. `{id}` takes the URL-encoded selection.
+ * Empty turns the command off.
+ */
+export const TaskLinkUrlTemplate = Schema.String.check(Schema.isMaxLength(500));
+export type TaskLinkUrlTemplate = typeof TaskLinkUrlTemplate.Type;
+
 /** Maximum width of the chat timeline and composer on wide screens. */
 export const ChatWidth = Schema.Literals(["comfortable", "wide", "full"]);
 export type ChatWidth = typeof ChatWidth.Type;
@@ -350,6 +358,7 @@ export const ClientSettingsSchema = Schema.Struct({
   browserAutoShowFloatingPreview: Schema.Boolean.pipe(
     Schema.withDecodingDefault(Effect.succeed(DEFAULT_BROWSER_AUTO_SHOW_FLOATING_PREVIEW)),
   ),
+  taskLinkUrlTemplate: TaskLinkUrlTemplate.pipe(Schema.withDecodingDefault(Effect.succeed(""))),
   /**
    * User-created browser profiles. The built-in Default and Incognito profiles
    * are synthesized by `resolveBrowserProfiles`, not stored here, so they
@@ -1832,6 +1841,7 @@ export const ClientSettingsPatch = Schema.Struct({
   browserRecordingShowMousePresses: Schema.optionalKey(Schema.Boolean),
   browserLinkTarget: Schema.optionalKey(BrowserLinkTarget),
   browserAutoShowFloatingPreview: Schema.optionalKey(Schema.Boolean),
+  taskLinkUrlTemplate: Schema.optionalKey(TaskLinkUrlTemplate),
   browserProfiles: Schema.optionalKey(Schema.Array(BrowserProfile)),
   browserDefaultProfileId: Schema.optionalKey(BrowserProfileId),
   confirmQuit: Schema.optionalKey(QuitConfirmationMode),

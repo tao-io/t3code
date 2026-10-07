@@ -89,6 +89,7 @@ import { useEnvironmentScope } from "../state/session";
 import { openTerminalLinkInPreview } from "./preview/openTerminalLinkInPreview";
 import { useAtomCommand } from "../state/use-atom-command";
 import { preventTerminalCloseShortcut } from "../lib/terminalCloseShortcut";
+import { registerTerminalSelectionReader } from "../lib/terminalSelection";
 import {
   resolveTerminalFontPreference,
   resolveTerminalFontSizePreference,
@@ -573,6 +574,7 @@ export function TerminalViewport({
       terminal.setTheme(terminalThemeFromApp(mount));
       setupTerminal = terminal;
       terminalRef.current = terminal;
+      setupCleanups.push(registerTerminalSelectionReader(mount, () => terminal.getSelection()));
       terminal.input.readOnly = !hasTerminalWriteAccess();
       // Client settings hydrate asynchronously; a font preference that landed
       // while the surface was loading found terminalRef null, so its setFont

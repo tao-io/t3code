@@ -24,6 +24,7 @@ import { isTrailingDoubleClick } from "../Sidebar.logic";
 import { Tooltip, TooltipPopup, TooltipTrigger } from "../ui/tooltip";
 import { toastManager } from "../ui/toast";
 import { useThreadActionMenu } from "~/hooks/useThreadActionMenu";
+import { subscribeThreadRenameRequests } from "./threadRenameRequest";
 import { readLocalApi } from "~/localApi";
 import { threadEnvironment } from "../../state/threads";
 import { useAtomCommand } from "../../state/use-atom-command";
@@ -155,6 +156,18 @@ export const ChatHeader = memo(function ChatHeader({
       });
     },
     [activeThreadEnvironmentId, activeThreadId, activeThreadTitle, updateThreadMetadata],
+  );
+  useEffect(
+    () =>
+      subscribeThreadRenameRequests((threadRef) => {
+        if (
+          threadRef.environmentId !== activeThreadEnvironmentId ||
+          threadRef.threadId !== activeThreadId
+        )
+          return;
+        startRename();
+      }),
+    [activeThreadEnvironmentId, activeThreadId, startRename],
   );
   const { openMenu, closeMenu } = useThreadActionMenu({
     threadRef: isServerThread ? activeThreadRef : null,

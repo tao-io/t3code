@@ -261,6 +261,10 @@ import {
   useThreadPreviewState,
 } from "../previewStateStore";
 import { BrowserSettingsReadError, openUrlInPreview } from "../browser/openFileInPreview";
+import { openTaskLink } from "../browser/openTaskLink";
+import { taskLinkIdFromSelection } from "../lib/taskLink";
+import { readFocusedTerminalSelection } from "../lib/terminalSelection";
+import { requestThreadRename } from "./chat/threadRenameRequest";
 import { resolveDiscoveredServerUrl } from "../browser/browserTargetResolver";
 import { previewRuntimeTabId } from "../browser/previewRuntimeTabId";
 import { addBrowserSurface } from "./preview/addBrowserSurface";
@@ -8018,6 +8022,44 @@ export default function ChatView(props: ChatViewProps) {
         return;
       }
 
+      if (command === "thread.rename") {
+        // Without operate access the key keeps its native meaning (reload).
+        if (!readEnvironmentScope(environmentId, AuthOrchestrationOperateScope)) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.repeat || !isServerThread || !activeThreadRef) return;
+        requestThreadRename(activeThreadRef);
+        return;
+      }
+
+      if (command === "chat.scrollToBottom") {
+        // In the composer the key also moves the caret to the end of the
+        // draft, so the event stays untouched there.
+        if (!shortcutContext.editableFocus) {
+          event.preventDefault();
+          event.stopPropagation();
+        }
+        if (event.repeat) return;
+        composerRef.current?.restoreAfterTimelineReachedEnd();
+        scrollToEnd(true);
+        return;
+      }
+
+      if (command === "selection.openTaskLink") {
+        // A focused terminal draws its own selection; elsewhere the page
+        // selection holds the chat text.
+        const id = taskLinkIdFromSelection(
+          readFocusedTerminalSelection() ?? window.getSelection()?.toString() ?? "",
+        );
+        // Nothing to open: the key keeps its native meaning (find next).
+        if (id === null) return;
+        event.preventDefault();
+        event.stopPropagation();
+        if (event.repeat) return;
+        openTaskLink({ id, threadRef: isServerThread ? activeThreadRef : null, openPreview });
+        return;
+      }
+
       if (command === "terminal.toggle") {
         if (!terminalUiState.terminalOpen && !canReadTerminal && !canOperateTerminal) return;
         event.preventDefault();
@@ -8255,6 +8297,8 @@ export default function ChatView(props: ChatViewProps) {
     hasMultipleEnvironments,
     logicalProjectEnvironments,
     onEnvironmentChange,
+    openPreview,
+    scrollToEnd,
   ]);
 
   // Paste-to-focus: the resting composer blurs on a click into the timeline,

@@ -187,6 +187,18 @@ export const DEFAULT_KEYBINDINGS: ReadonlyArray<KeybindingRule> = [
   { key: "mod+shift+c", command: "thread.copyReference", when: "!terminalFocus" },
   { key: "mod+shift+s", command: "thread.settle", when: "!terminalFocus" },
   { key: "mod+shift+p", command: "thread.pin", when: "!terminalFocus" },
+  // Not in the terminal (Ctrl+R is reverse search there) or the preview, which
+  // keeps mod+r for refresh.
+  { key: "mod+r", command: "thread.rename", when: "!terminalFocus && !previewFocus" },
+  // In the composer mod+down also moves the caret to the end; other text
+  // fields keep it as caret movement only.
+  {
+    key: "mod+arrowdown",
+    command: "chat.scrollToBottom",
+    when: "!terminalFocus && !previewFocus && (!editableFocus || composerFocus)",
+  },
+  // Only consumed when text is selected, so find-next keeps working otherwise.
+  { key: "mod+g", command: "selection.openTaskLink", when: "!previewFocus" },
   { key: "mod+z", command: "thread.undo", when: "!terminalFocus && !editableFocus" },
   ...THREAD_JUMP_KEYBINDING_COMMANDS.map((command, index) => ({
     key: `mod+${index + 1}`,

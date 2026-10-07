@@ -37,3 +37,21 @@ export function isCommandPaletteOpen(): boolean {
     typeof document !== "undefined" && document.querySelector("[data-command-palette]") !== null
   );
 }
+
+/**
+ * Runs `callback` once the palette has unmounted and handed focus back, for
+ * actions that move focus themselves, such as starting an inline rename.
+ */
+export function afterCommandPaletteCloses(callback: () => void): void {
+  let frames = 0;
+  const check = () => {
+    frames += 1;
+    if (isCommandPaletteOpen() && frames < 120) {
+      requestAnimationFrame(check);
+      return;
+    }
+    // One more frame lets the dialog's final focus land first.
+    requestAnimationFrame(callback);
+  };
+  requestAnimationFrame(check);
+}

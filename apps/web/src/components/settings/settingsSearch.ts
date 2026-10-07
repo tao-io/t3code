@@ -704,6 +704,12 @@ export const SETTINGS_SEARCH_ITEMS = [
     searchTerms: ["links default browser in-app browser external open"],
   },
   {
+    id: "task-link-url",
+    title: "Task link URL",
+    to: "/settings/integrations",
+    searchTerms: ["task ticket issue link selection open tracker url template"],
+  },
+  {
     id: "browser-auto-show-floating-preview",
     title: "Auto-show floating preview",
     to: "/settings/integrations",

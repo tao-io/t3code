@@ -289,6 +289,41 @@ describe("thread undo shortcut", () => {
   });
 });
 
+describe("rename, scroll, and task link defaults", () => {
+  const resolveMac = (input: ShortcutEventLike, context: Record<string, boolean> = {}) =>
+    resolveShortcutCommand(input, DEFAULT_RESOLVED_KEYBINDINGS, { platform: "MacIntel", context });
+
+  it("renames with mod+r but leaves the preview refresh and terminal search alone", () => {
+    const modR = event({ key: "r", metaKey: true });
+    assert.strictEqual(resolveMac(modR), "thread.rename");
+    assert.strictEqual(resolveMac(modR, { previewFocus: true }), "preview.refresh");
+    assert.isNull(
+      resolveShortcutCommand(event({ key: "r", ctrlKey: true }), DEFAULT_RESOLVED_KEYBINDINGS, {
+        platform: "Win32",
+        context: { terminalFocus: true },
+      }),
+    );
+  });
+
+  it("scrolls to the end from the timeline and the composer, not other text fields", () => {
+    const modDown = event({ key: "ArrowDown", metaKey: true });
+    assert.strictEqual(resolveMac(modDown), "chat.scrollToBottom");
+    assert.strictEqual(
+      resolveMac(modDown, { editableFocus: true, composerFocus: true }),
+      "chat.scrollToBottom",
+    );
+    assert.isNull(resolveMac(modDown, { editableFocus: true }));
+    assert.isNull(resolveMac(modDown, { terminalFocus: true }));
+  });
+
+  it("opens task links with mod+g, terminals included", () => {
+    const modG = event({ key: "g", metaKey: true });
+    assert.strictEqual(resolveMac(modG), "selection.openTaskLink");
+    assert.strictEqual(resolveMac(modG, { terminalFocus: true }), "selection.openTaskLink");
+    assert.isNull(resolveMac(modG, { previewFocus: true }));
+  });
+});
+
 describe("copy thread reference shortcut", () => {
   it("resolves Cmd+Shift+C on macOS and Ctrl+Shift+C elsewhere", () => {
     assert.equal(

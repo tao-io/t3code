@@ -45,6 +45,7 @@ import {
   resolveEnvironmentMachineKind,
 } from "@t3tools/contracts";
 import { useLocation, useNavigate, useParams } from "@tanstack/react-router";
+import { requestThreadRename } from "./chat/threadRenameRequest";
 import * as Option from "effect/Option";
 import {
   ArrowLeftIcon,
@@ -62,6 +63,7 @@ import {
   MonitorIcon,
   MoonIcon,
   PaletteIcon,
+  PencilIcon,
   RotateCcwIcon,
   SettingsIcon,
   SquarePenIcon,
@@ -128,7 +130,7 @@ import {
   isUnsupportedWindowsProjectPath,
   resolveProjectPathForDispatch,
 } from "../lib/projectPaths";
-import { onOpenCommandPalette } from "../commandPaletteBus";
+import { afterCommandPaletteCloses, onOpenCommandPalette } from "../commandPaletteBus";
 import { isPreviewFocused } from "../lib/previewFocus";
 import { isTerminalFocused } from "../lib/terminalFocus";
 import {
@@ -1940,6 +1942,23 @@ function OpenCommandPaletteDialog(props: {
       icon: <LinkIcon className={ITEM_ICON_CLASS} />,
       shortcutCommand: "thread.copyReference",
       run: copyActiveThreadReference,
+    });
+  }
+
+  if (activeThread !== null) {
+    const threadRef = scopeThreadRef(activeThread.environmentId, activeThread.id);
+    actionItems.push({
+      kind: "action",
+      value: "action:rename-thread",
+      searchTerms: ["rename", "title", "thread", "name"],
+      title: "Rename thread",
+      icon: <PencilIcon className={ITEM_ICON_CLASS} />,
+      shortcutCommand: "thread.rename",
+      run: async () => {
+        // The palette returns focus to the composer as it closes, which
+        // would end a rename that started earlier.
+        afterCommandPaletteCloses(() => requestThreadRename(threadRef));
+      },
     });
   }
 
