@@ -1842,7 +1842,7 @@ export default function ChatView(props: ChatViewProps) {
     useState<HTMLDivElement | null>(null);
   const [restingComposerControlsVisible, setRestingComposerControlsVisible] = useState(false);
   const citeAssistantText = useCallback(
-    (citation: AssistantCitation, sourceAnchor: AssistantCitationSourceAnchor) => {
+    (citation: AssistantCitation, sourceAnchor: AssistantCitationSourceAnchor | null) => {
       const inserted = composerRef.current?.citeAssistantText(citation, sourceAnchor) ?? false;
       if (!inserted) {
         toastManager.add({

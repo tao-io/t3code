@@ -198,7 +198,7 @@ export function observeAssistantCitationSource({
             request.onComplete();
             toastManager.add({
               type: "warning",
-              title: "Could not open the cited response",
+              title: "Could not open the cited message",
               description: "Click the citation to try again.",
             });
           },
