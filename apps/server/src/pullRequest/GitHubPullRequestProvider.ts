@@ -7,8 +7,8 @@ import type {
   PullRequestViewerPermissions,
 } from "@t3tools/contracts";
 
-import * as GitHubApi from "../sourceControl/GitHubApi.ts";
-import * as GitHubPullRequestApi from "./GitHubPullRequestApi.ts";
+import * as GitHubCli from "../sourceControl/GitHubCli.ts";
+import * as GitHubPullRequestCli from "./GitHubPullRequestCli.ts";
 import {
   PullRequestProviderError,
   type PullRequestProviderFailure,
@@ -104,7 +104,7 @@ export function gitHubViewerPermissions(access: GitHubViewerAccess): PullRequest
 
 /** The tags that mean GitHub is out of reach for this account, rather than one request failing. */
 export function gitHubProviderFailure(
-  error: GitHubPullRequestApi.GitHubPullRequestApiError,
+  error: GitHubPullRequestCli.GitHubPullRequestCliError,
 ): PullRequestProviderFailure {
   switch (error._tag) {
     case "GitHubCliMissingError":
@@ -197,9 +197,9 @@ const rendersEmpty = (body: string): boolean =>
   body.replace(/<!--[\s\S]*?-->/g, "").trim().length === 0;
 
 export const make = Effect.gen(function* () {
-  const cli = yield* GitHubPullRequestApi.GitHubPullRequestApi;
+  const cli = yield* GitHubPullRequestCli.GitHubPullRequestCli;
 
-  const fail = (operation: string) => (error: GitHubPullRequestApi.GitHubPullRequestApiError) =>
+  const fail = (operation: string) => (error: GitHubPullRequestCli.GitHubPullRequestCliError) =>
     new PullRequestProviderError({
       provider: "github",
       operation,
@@ -526,7 +526,7 @@ export const make = Effect.gen(function* () {
       // comparison, so one read usually answers what used to take three. When that heavier read
       // fails, the light access read still answers, withholding only update-branch.
       return cli.getPullRequestDetail(input).pipe(
-        Effect.provideService(GitHubApi.AllowGitHubReserve, true),
+        Effect.provideService(GitHubCli.AllowGitHubReserve, true),
         Effect.map((pullRequest) =>
           gitHubViewerPermissions({
             ...pullRequest.viewerAccess,

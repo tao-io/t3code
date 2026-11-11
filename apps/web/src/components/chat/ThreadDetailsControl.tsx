@@ -1,14 +1,17 @@
 import { mergeProps } from "@base-ui/react/merge-props";
+import { Select as SelectPrimitive } from "@base-ui/react/select";
 import { useRender } from "@base-ui/react/use-render";
 import type { ComponentProps } from "react";
 
 import { cn } from "~/lib/utils";
 import { Button } from "../ui/button";
+import { ComposerSelectControl } from "./ComposerControl";
 import {
   THREAD_DETAILS_PANEL_ROW_CLASS,
   THREAD_DETAILS_PANEL_SELECT_ROW_CLASS,
   THREAD_DETAILS_PANEL_SPLIT_PRIMARY_CLASS,
   THREAD_DETAILS_PANEL_SPLIT_SECONDARY_CLASS,
+  THREAD_DETAILS_PANEL_LINK_SPLIT_PRIMARY_CLASS,
   THREAD_DETAILS_PANEL_ICON_ACTION_CLASS,
   THREAD_DETAILS_PANEL_META_ACTION_CLASS,
   THREAD_DETAILS_PANEL_CHEVRON_CLASS,
@@ -17,9 +20,11 @@ import { ChevronDownIcon } from "lucide-react";
 
 const parts = {
   row: THREAD_DETAILS_PANEL_ROW_CLASS,
+  "group-row": `${THREAD_DETAILS_PANEL_ROW_CLASS} hover:!bg-transparent dark:hover:!bg-transparent`,
   select: THREAD_DETAILS_PANEL_SELECT_ROW_CLASS,
   primary: THREAD_DETAILS_PANEL_SPLIT_PRIMARY_CLASS,
   secondary: THREAD_DETAILS_PANEL_SPLIT_SECONDARY_CLASS,
+  "link-primary": THREAD_DETAILS_PANEL_LINK_SPLIT_PRIMARY_CLASS,
   icon: THREAD_DETAILS_PANEL_ICON_ACTION_CLASS,
   meta: THREAD_DETAILS_PANEL_META_ACTION_CLASS,
 };
@@ -31,7 +36,6 @@ export function ThreadDetailsControl({
   multiline = false,
   tone = "default",
   className,
-  children,
   size = "default",
   variant = "default",
   render,
@@ -60,19 +64,6 @@ export function ThreadDetailsControl({
         ),
       },
       props,
-      {
-        children:
-          part === "select" ? (
-            <>
-              {children}
-              <span data-slot="select-icon">
-                <ChevronDownIcon className={THREAD_DETAILS_PANEL_CHEVRON_CLASS} />
-              </span>
-            </>
-          ) : (
-            children
-          ),
-      },
     ),
   });
   if (!panel) {
@@ -83,10 +74,34 @@ export function ThreadDetailsControl({
         size={multiline ? "sm-multiline" : size}
         variant={variant}
         className={className}
-      >
-        {children}
-      </Button>
+      />
     );
   }
   return control;
+}
+
+export function ThreadDetailsSelectControl({
+  panel,
+  children,
+  className,
+  ...props
+}: Omit<SelectPrimitive.Trigger.Props, "className"> & { panel: boolean; className?: string }) {
+  if (!panel) {
+    return (
+      <ComposerSelectControl {...props} size="xs" className={className}>
+        {children}
+      </ComposerSelectControl>
+    );
+  }
+  return (
+    <SelectPrimitive.Trigger
+      {...props}
+      render={<ThreadDetailsControl part="select" className={className} />}
+    >
+      {children}
+      <SelectPrimitive.Icon data-slot="select-icon">
+        <ChevronDownIcon className={THREAD_DETAILS_PANEL_CHEVRON_CLASS} />
+      </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
+  );
 }

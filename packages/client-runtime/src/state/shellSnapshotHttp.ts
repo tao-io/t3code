@@ -1,11 +1,10 @@
-import { EnvironmentHttpCommonError } from "@t3tools/contracts";
+import type { OrchestrationV2ShellSnapshot } from "@t3tools/contracts";
 import * as Cause from "effect/Cause";
 import * as Context from "effect/Context";
 import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
-import * as Schema from "effect/Schema";
-import { HttpClient, HttpClientError, type HttpClientResponse } from "effect/http";
+import { HttpClient } from "effect/http";
 
 import * as RemoteEnvironmentAuthorization from "../authorization/service.ts";
 import type { PreparedConnection } from "../connection/model.ts";
@@ -15,10 +14,6 @@ import {
   executeAuthenticatedEnvironmentHttpRequest,
   withOrchestrationProtocolHeader,
 } from "./environmentHttpAuth.ts";
-import {
-  decodeShellSnapshotDeferringPullRequests,
-  type DeferredShellSnapshot,
-} from "./shellPullRequests.ts";
 
 // Long enough for a slow but alive server to finish. On timeout the socket asks
 // the same server for the same full snapshot, so a short deadline only throws
@@ -50,44 +45,10 @@ export const fetchEnvironmentShellSnapshot = Effect.fn(
     method: "GET",
     url: (httpBaseUrl) => environmentEndpointUrl(httpBaseUrl, "/api/orchestration/shell"),
     timeoutMs: input.timeoutMs ?? DEFAULT_SHELL_SNAPSHOT_TIMEOUT_MS,
-    // The body is decoded here so each thread's pull request links can decode after its
-    // rows. Every declared error is an `EnvironmentHttpCommonError`, so decoding one keeps
-    // the error the credential retry checks for.
     request: ({ client, headers }) =>
-      client
-        .shellSnapshot({
-          headers: withOrchestrationProtocolHeader(headers),
-          responseMode: "response-only",
-        })
-        .pipe(Effect.flatMap(decodeShellSnapshotResponse)),
+      client.shellSnapshot({ headers: withOrchestrationProtocolHeader(headers) }),
   });
 });
-
-const decodeEnvironmentHttpCommonError = Schema.decodeUnknownEffect(
-  Schema.toCodecJson(EnvironmentHttpCommonError),
-);
-
-const decodeShellSnapshotResponse = (
-  response: HttpClientResponse.HttpClientResponse,
-): Effect.Effect<
-  DeferredShellSnapshot,
-  HttpClientError.HttpClientError | Schema.SchemaError | EnvironmentHttpCommonError
-> => {
-  if (response.status === 200) {
-    return response.json.pipe(Effect.flatMap(decodeShellSnapshotDeferringPullRequests));
-  }
-  // A body that is not a declared error keeps its status, as the generated decoder reported.
-  const statusError = new HttpClientError.HttpClientError({
-    reason: new HttpClientError.StatusCodeError({ request: response.request, response }),
-  });
-  return response.json.pipe(
-    Effect.flatMap(decodeEnvironmentHttpCommonError),
-    Effect.matchEffect({
-      onFailure: () => Effect.fail(statusError),
-      onSuccess: Effect.fail,
-    }),
-  );
-};
 
 /**
  * Loads the environment shell snapshot over HTTP, returning `Option.none()` when
@@ -100,7 +61,7 @@ export class ShellSnapshotLoader extends Context.Service<
   {
     readonly load: (
       prepared: PreparedConnection,
-    ) => Effect.Effect<Option.Option<DeferredShellSnapshot>>;
+    ) => Effect.Effect<Option.Option<OrchestrationV2ShellSnapshot>>;
   }
 >()("@t3tools/client-runtime/state/shellSnapshotHttp/ShellSnapshotLoader") {}
 
@@ -117,14 +78,14 @@ export const layer: Layer.Layer<ShellSnapshotLoader, never, HttpClient.HttpClien
     return ShellSnapshotLoader.of({
       load: (prepared: PreparedConnection) =>
         fetchEnvironmentShellSnapshot({ prepared, signer, remoteAuthorization }).pipe(
-          Effect.map(Option.some<DeferredShellSnapshot>),
+          Effect.map(Option.some<OrchestrationV2ShellSnapshot>),
           Effect.provideService(HttpClient.HttpClient, httpClient),
           Effect.catchCause((cause) =>
             Effect.logWarning(
               "Could not load the environment shell snapshot over HTTP; using the socket snapshot instead.",
             ).pipe(
               Effect.annotateLogs({ cause: Cause.pretty(cause) }),
-              Effect.as(Option.none<DeferredShellSnapshot>()),
+              Effect.as(Option.none<OrchestrationV2ShellSnapshot>()),
             ),
           ),
         ),

@@ -77,8 +77,6 @@ function freezeNode(node: MutableFileTreeNode): FileTreeNode {
   };
 }
 
-const fileNameCollator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
-
 function compareNodes(
   left: Pick<FileTreeNode, "kind" | "name">,
   right: Pick<FileTreeNode, "kind" | "name">,
@@ -86,7 +84,7 @@ function compareNodes(
   if (left.kind !== right.kind) {
     return left.kind === "directory" ? -1 : 1;
   }
-  return fileNameCollator.compare(left.name, right.name);
+  return left.name.localeCompare(right.name, undefined, { numeric: true, sensitivity: "base" });
 }
 
 export function buildFileTree(entries: ReadonlyArray<ProjectEntry>): ReadonlyArray<FileTreeNode> {

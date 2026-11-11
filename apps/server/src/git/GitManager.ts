@@ -1286,7 +1286,7 @@ export const make = Effect.gen(function* () {
               ? {
                   provider: error.provider,
                   providerOperation: error.operation,
-                  ...(error.command === undefined ? {} : { providerCommand: error.command }),
+                  providerCommand: error.command ?? "unknown",
                   errorDetail: error.detail,
                 }
               : {}),

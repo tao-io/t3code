@@ -74,6 +74,8 @@ describe("ThreadDetailsPanel", () => {
       startFromOrigin: false,
       onStartFromOriginChange: vi.fn(),
       onComposerFocusRequest: vi.fn(),
+      versionMismatch: null,
+      onDismissVersionMismatch: vi.fn(),
       onRunProjectScript: vi.fn(),
       onAddProjectScript: vi.fn() as ThreadDetailsPanelProps["onAddProjectScript"],
       onUpdateProjectScript: vi.fn() as ThreadDetailsPanelProps["onUpdateProjectScript"],

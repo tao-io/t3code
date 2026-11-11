@@ -17,16 +17,15 @@ describe("compileClaudeModelSelection", () => {
   it("compiles context, effort, and settings together", () => {
     expect(
       compileClaudeModelSelection(
-        selection("claude-opus-4-6", [
+        selection("claude-fable-5", [
           { id: "contextWindow", value: "1m" },
-          { id: "effort", value: "max" },
-          { id: "fastMode", value: true },
+          { id: "effort", value: "ultracode" },
         ]),
       ),
     ).toMatchObject({
-      apiModelId: "claude-opus-4-6[1m]",
-      effort: "max",
-      settings: { fastMode: true },
+      apiModelId: "claude-fable-5[1m]",
+      effort: "xhigh",
+      settings: { ultracode: true },
     });
   });
 

@@ -78,6 +78,7 @@ export function ThreadFileNavigatorPane(props: {
           sharesBackground: false,
           tintColor: foregroundColor,
           type: "button" as const,
+          width: 44,
         },
       ] as ComponentProps<typeof ScreenStackHeaderConfig>["headerRightBarButtonItems"],
     [foregroundColor, toggleAuxiliaryPane],
@@ -87,7 +88,7 @@ export function ThreadFileNavigatorPane(props: {
     <FileTreeBrowser
       key={JSON.stringify([props.environmentId, props.cwd])}
       entries={entriesQuery.entries}
-      loadingDirectories={entriesQuery.loadingDirectories}
+      loadedDirectories={entriesQuery.loadedDirectories}
       onLoadDirectory={entriesQuery.loadDirectory}
       error={
         canReadFiles
@@ -97,7 +98,6 @@ export function ThreadFileNavigatorPane(props: {
             : (fileAccess.error ?? "This connection cannot read host files.")
       }
       isPending={fileAccess.isPending || entriesQuery.isPending}
-      isRefreshing={entriesQuery.isRefreshing}
       searchQuery={searchQuery}
       searchTruncated={entriesQuery.searchTruncated}
       selectedPath={props.selectedPath}

@@ -1754,40 +1754,36 @@ describe("decodePullRequestFilesViewedJson", () => {
 
 describe("buildSetFilesViewedGraphQlMutation", () => {
   it("asks for nothing when nothing was pressed", () => {
-    expect(buildSetFilesViewedGraphQlMutation("PR_1", [])).toBeNull();
+    expect(buildSetFilesViewedGraphQlMutation([])).toBeNull();
   });
 
   it("clears and restores in one document, each file under its own alias", () => {
-    const mutation = buildSetFilesViewedGraphQlMutation("PR_1", [
+    const mutation = buildSetFilesViewedGraphQlMutation([
       { path: "src/a.ts", viewed: true },
       { path: "src/b.ts", viewed: false },
     ]);
     expect(mutation).not.toBeNull();
     if (mutation === null) return;
     expect(mutation.query).toContain(
-      "mutation($pullRequestId: ID!, $f0_path: String!, $f1_path: String!)",
+      "mutation($pullRequestId: ID!, $path0: String!, $path1: String!)",
     );
     expect(mutation.query).toContain(
-      "f0: markFileAsViewed(input: { pullRequestId: $pullRequestId, path: $f0_path })",
+      "f0: markFileAsViewed(input: { pullRequestId: $pullRequestId, path: $path0 })",
     );
     expect(mutation.query).toContain(
-      "f1: unmarkFileAsViewed(input: { pullRequestId: $pullRequestId, path: $f1_path })",
+      "f1: unmarkFileAsViewed(input: { pullRequestId: $pullRequestId, path: $path1 })",
     );
-    expect(mutation.variables).toEqual({
-      pullRequestId: "PR_1",
-      f0_path: "src/a.ts",
-      f1_path: "src/b.ts",
-    });
+    expect(mutation.variables).toEqual({ path0: "src/a.ts", path1: "src/b.ts" });
   });
 
   it("keeps a path out of the document, so one cannot be read as part of it", () => {
-    const mutation = buildSetFilesViewedGraphQlMutation("PR_1", [
+    const mutation = buildSetFilesViewedGraphQlMutation([
       { path: '") { __typename } evil: markFileAsViewed(input: { path: "x', viewed: true },
     ]);
     expect(mutation).not.toBeNull();
     if (mutation === null) return;
     expect(mutation.query).not.toContain("evil");
-    expect(mutation.variables.f0_path).toBe(
+    expect(mutation.variables.path0).toBe(
       '") { __typename } evil: markFileAsViewed(input: { path: "x',
     );
   });
@@ -1926,14 +1922,9 @@ describe("pull request stack membership batches", () => {
     expect(buildPullRequestStackMembershipsGraphQlQuery("acme/web", [0])).toBeNull();
     expect(buildPullRequestStackMembershipsGraphQlQuery("acme/web", [1.5])).toBeNull();
     expect(buildPullRequestStackMembershipsGraphQlQuery("acme/web", [])).toBeNull();
-    expect(buildPullRequestStackMembershipsGraphQlQuery("acme/web", [7, 8])?.variables).toEqual({
-      s0_owner: "acme",
-      s0_name: "web",
-      s0_number: 7,
-      s1_owner: "acme",
-      s1_name: "web",
-      s1_number: 8,
-    });
+    expect(buildPullRequestStackMembershipsGraphQlQuery("acme/web", [7, 8])).toContain(
+      "pullRequest(number: 8)",
+    );
   });
 });
 
@@ -1991,10 +1982,10 @@ describe("batched pull request summaries", () => {
 
   it("reads stack membership only where the document asked for it", () => {
     expect(
-      buildPullRequestSummariesGraphQlQuery([{ repository: "acme/web", number: 7 }], true)?.query,
+      buildPullRequestSummariesGraphQlQuery([{ repository: "acme/web", number: 7 }], true),
     ).toContain("stack { number size baseRefName } stackEntry { position }");
     expect(
-      buildPullRequestSummariesGraphQlQuery([{ repository: "acme/web", number: 7 }])?.query,
+      buildPullRequestSummariesGraphQlQuery([{ repository: "acme/web", number: 7 }]),
     ).not.toContain("stack {");
     const pullRequest = (number: number, stack: Record<string, unknown>) => ({
       pullRequest: {
@@ -2028,22 +2019,16 @@ describe("batched pull request summaries", () => {
 
 describe("pull request watch fingerprints", () => {
   it("asks for every pull request in one aliased read, and refuses an unsafe selector", () => {
-    const document = buildPullRequestWatchFingerprintsGraphQlQuery([
+    const query = buildPullRequestWatchFingerprintsGraphQlQuery([
       { repository: "pingdotgg/t3code", number: 7 },
       { repository: "pingdotgg/lakebed", number: 8 },
     ]);
-    expect(document?.query).toContain(
-      "w0: repository(owner: $w0_owner, name: $w0_name) { pullRequest(number: $w0_number)",
+    expect(query).toContain(
+      'w0: repository(owner: "pingdotgg", name: "t3code") { pullRequest(number: 7)',
     );
-    expect(document?.query).toContain("w1: repository(owner: $w1_owner, name: $w1_name)");
-    expect(document?.variables).toEqual({
-      w0_owner: "pingdotgg",
-      w0_name: "t3code",
-      w0_number: 7,
-      w1_owner: "pingdotgg",
-      w1_name: "lakebed",
-      w1_number: 8,
-    });
+    expect(query).toContain(
+      'w1: repository(owner: "pingdotgg", name: "lakebed") { pullRequest(number: 8)',
+    );
     expect(
       buildPullRequestWatchFingerprintsGraphQlQuery([{ repository: 'evil") { x', number: 1 }]),
     ).toBeNull();
