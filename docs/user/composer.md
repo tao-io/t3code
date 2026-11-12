@@ -76,16 +76,11 @@ returns to the remembered selection.
 
 Leaving reasoning level or service tier unset uses the provider's own configuration.
 
-## Quote a message
+## Quote an assistant response
 
-On web and desktop, select text within one message, from the agent or from you. A bar
-opens beside the selection. Type a comment and press `Enter` to add the quote and the
-comment to the composer. Press `Escape` to close the bar. Or choose **Cite** to add the
-quote and edit its comment beside its chip. After a mouse selection,
-the comment field gets focus at once. After a keyboard selection, the field does not get
-focus, so `Shift+Arrow` still extends the selection; press `Tab` to move to the field.
-
-Double-click a ticket id such as `MR-559` in a message to select the full id.
+On web and desktop, select text within one assistant response and choose
+**Cite in composer**. You can add a comment about the quote and write instructions
+around it.
 
 Select the quote in a draft or sent message to return to its source. If the source
 is unavailable or has changed, the saved quote remains readable.

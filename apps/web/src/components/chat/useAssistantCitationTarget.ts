@@ -93,7 +93,7 @@ export function useAssistantCitationTarget({
         const cursor = loadEarlier.cursor ?? entries[0]?.id ?? "first";
         if (navigation.requestedPages.has(cursor) || navigation.requestedPages.size >= 20) {
           fail(
-            "Could not load the cited message",
+            "Could not load the cited response",
             "Load earlier turns, then click the citation to try again. Your saved quote is unchanged.",
           );
           return;
@@ -103,17 +103,14 @@ export function useAssistantCitationTarget({
         return;
       }
       fail(
-        "The cited message is unavailable",
+        "The cited response is unavailable",
         "It may have been removed. The selected text is still saved in your citation.",
       );
       return;
     }
-    if (
-      source.kind !== "message" ||
-      (source.message.role !== "assistant" && source.message.role !== "user")
-    ) {
+    if (source.kind !== "message" || source.message.role !== "assistant") {
       fail(
-        "The citation does not refer to a chat message",
+        "The citation does not refer to an assistant response",
         "The selected text is still saved in your citation.",
       );
       return;

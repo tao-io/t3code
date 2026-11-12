@@ -1452,10 +1452,9 @@ export interface ChatComposerHandle {
   ) => boolean;
   /** Apply large-paste folding for text redirected from a blurred composer. */
   pasteTextAtEnd: (text: string, options?: { bypassAutoAttachment?: boolean }) => boolean;
-  /** A source anchor opens the comment editor beside the quote; null inserts the quote as is. */
   citeAssistantText: (
     citation: AssistantCitation,
-    sourceAnchor: AssistantCitationSourceAnchor | null,
+    sourceAnchor: AssistantCitationSourceAnchor,
   ) => boolean;
   openModelPicker: () => void;
   toggleModelPicker: () => void;
@@ -6380,9 +6379,7 @@ export const ChatComposer = memo(function ChatComposer(props: ChatComposerProps)
         insertComposerText(
           formatAssistantCitationForComposer(citation, citation.comment),
           "cursor",
-          sourceAnchor
-            ? { ensureLeadingBoundary: true, citationCommentAnchor: sourceAnchor }
-            : { ensureLeadingBoundary: true },
+          { ensureLeadingBoundary: true, citationCommentAnchor: sourceAnchor },
         ),
       openModelPicker,
       toggleModelPicker: () => {

@@ -255,7 +255,6 @@ import { chatMarkdownClipboardPayload } from "../../markdown-clipboard";
 import { ContextChip, ContextChipLabel, type ContextChipKind } from "../ContextChip";
 import { createContextPresentationRegistry } from "../contextPresentationRegistry";
 import { useOpenPrLink } from "~/lib/openPullRequestLink";
-import { observeTicketDoubleClick } from "~/lib/ticketSelection";
 import { useClientSettings } from "~/hooks/useSettings";
 import type { ChatMarkdownContextReference } from "../ChatMarkdown";
 import { useMediaQuery } from "~/hooks/useMediaQuery";
@@ -437,7 +436,7 @@ interface MessagesTimelineProps {
   citationHistoryLoading?: boolean;
   onCiteAssistantText?: (
     citation: AssistantCitation,
-    sourceAnchor: AssistantCitationSourceAnchor | null,
+    sourceAnchor: AssistantCitationSourceAnchor,
   ) => boolean;
   isWorking: boolean;
   /** The live work belongs to a runless root turn (a provider-native subagent). */
@@ -956,10 +955,6 @@ export const MessagesTimeline = memo(function MessagesTimeline({
 
   const [timelineViewportElement, setTimelineViewportElement] = useState<HTMLDivElement | null>(
     null,
-  );
-  useEffect(
-    () => (timelineViewportElement ? observeTicketDoubleClick(timelineViewportElement) : undefined),
-    [timelineViewportElement],
   );
   // Re-measure the minimap gutter when the chat column changes width without a viewport resize.
   const chatWidth = useClientSettings((settings) => settings.chatWidth);
@@ -2318,20 +2313,12 @@ function UserTimelineRow({ row }: { row: Extract<TimelineRow, { kind: "message" 
           </div>
         ) : null}
         <div onCopyCapture={onBodyCopyCapture}>
-          <AssistantCitationSource
-            messageId={row.message.id}
-            {...(ctx.threadRef ? { threadRef: ctx.threadRef } : {})}
-            itemKey={row.id}
-            request={ctx.citationRequest}
-            listRef={ctx.listRef}
-          >
-            <CollapsibleUserMessageBody
-              text={resolvedContext.text}
-              renderContextReference={renderContextReference}
-              skills={ctx.skills}
-              markdownCwd={ctx.markdownCwd}
-            />
-          </AssistantCitationSource>
+          <CollapsibleUserMessageBody
+            text={resolvedContext.text}
+            renderContextReference={renderContextReference}
+            skills={ctx.skills}
+            markdownCwd={ctx.markdownCwd}
+          />
         </div>
       </div>
       {row.projectedItem &&
